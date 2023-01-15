@@ -276,6 +276,7 @@ BEGIN
     WHEN NO_DATA_FOUND THEN RETURN FALSE;
 END;
 
+
 --KOLEKCJE
 --------------------------------------------------------------------------------
 13.Utworzyć tabelę zagnieżdżoną o nazwie NT_Osrodki, której elementy będą rekordami.
@@ -301,6 +302,7 @@ begin
     for j in colOsr.first..colOsr.last loop
         dbms_output.put_line(colOsr(j).id || ' - ' || colOsr(j).nazwa) ;
     end loop ;
+    
 end ;
 
 --------------------------------------------------------------------------------
@@ -339,6 +341,7 @@ begin
     end loop ;
 
 end ;
+
 
 --------------------------------------------------------------------------------
 15.Utworzyć tabelę bazy danych o nazwie Indeks. Tabela powinna zawierać informacje o
@@ -419,3 +422,53 @@ begin
         dbms_output.put_line(tab_stud(i).id_student || ', ' || tab_stud(i).imie || ', ' || tab_stud(i).nazwisko || ', ' || tab_stud(i).liczba_egz || ', ' || tab_stud(i).punkty);
     end loop;
 end ;
+
+
+
+
+
+
+-----------------------------------------------------------------
+-- ZADANIA ROBIONE PRZEZ NAS
+
+Utworzyć kolekcję typu tablica zagnieżdżona i nazwać ją NT_Studenci. W kolekcji należy
+umieścić elementy, z których każdy opisuje studenta oraz całkowitą liczbę punktów
+zdobytych przez niego ze wszystkich egzaminów. Do opisu studenta należy użyć jego
+identyfikatora, nazwiska i imienia.
+Zainicjować wartości elementów kolekcji na podstawie danych z tabel Studenci i Egzaminy.
+Zapewnić, by dane umieszczane były w takiej kolejności, aby na początku znaleźli się
+studenci, którzy zdobyli największą liczbę punktów.
+Po zainicjowaniu kolekcji, wyświetlić wartości znajdujące się w poszczególnych jej
+elementach.
+
+DECLARE
+    type rowType is record (id_student number, imie varchar(20), nazwisko varchar(20), liczbaPunktow number);
+    type tableType is table of rowType;
+    NT_Studenci tableType := tableType();
+
+    k number := 0;
+    cursor cStudenci is select id_student, imie,nazwisko from studenci;
+
+    function getPointCount(idS studenci.id_student%TYPE) return number is
+        n number;
+        begin
+            n:=0;
+            
+            select sum(e.punkty) into n from egzaminy e  where idS = e.id_student;
+           
+            return n;
+
+            Exception
+            when no_data_found then return 0;
+        end getPointCount; 
+BEGIN
+    for vcStudenci in cStudenci loop
+       NT_Studenci.extend;
+       NT_Studenci(cStudenci%ROWCOUNT).id_student := vcStudenci.id_student  ;
+       NT_Studenci(cStudenci%ROWCOUNT).imie := vcStudenci.imie;
+       NT_Studenci(cStudenci%ROWCOUNT).nazwisko := vcStudenci.nazwisko  ;
+       NT_Studenci(cStudenci%ROWCOUNT).liczbaPunktow := getPointCount(vcStudenci.id_student); 
+        dbms_output.put_line(NT_Studenci(cStudenci%ROWCOUNT).id_student || ' '|| NT_Studenci(cStudenci%ROWCOUNT).imie || ' ' || NT_Studenci(cStudenci%ROWCOUNT).nazwisko || ' ' || NT_Studenci(cStudenci%ROWCOUNT).liczbaPunktow);
+    end loop;
+    
+END;
