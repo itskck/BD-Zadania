@@ -472,3 +472,50 @@ BEGIN
     end loop;
     
 END;
+
+
+--Który student zdawał w jednym miesiącu więcej niż 10 egzaminów? Zadanie należy
+--rozwiązać przy użyciu techniki wyjątków (jeśli to konieczne, można dodatkowo zastosować
+--kursory). W odpowiedzi proszę umieścić pełne dane studenta (identyfikator, nazwisko, imię),
+--rok i nazwę miesiąca oraz liczbę egzaminów.
+
+
+DECLARE
+   
+   exc Exception;
+
+   cursor dateCursor is select distinct extract(YEAR from data_egzamin) as yrs from egzaminy order by 1;
+   cursor studentCursor is select id_student, imie, nazwisko from studenci;
+
+   procedure isMoreThan10 is
+   b boolean;
+   howMuch number;
+   begin
+    for st in studentCursor loop
+        for yr in dateCursor loop
+            for mo in 1..12 loop
+                howMuch := 0;
+                select count(*) into howMuch from egzaminy where id_student = st.id_student
+                and extract(YEAR from data_egzamin) = yr.yrs 
+                and extract(MONTH from data_egzamin) = mo;
+                begin
+                if howMuch > 8 then
+                    raise exc;
+                end if;
+                EXCEPTION
+                    when exc then
+                
+                    dbms_output.put_line(st.id_student || ' ' || st.imie || ' ' || st.nazwisko || ' ' || yr.yrs || ' ' || TO_DATE(mo,'MM') || ' ' || howMuch);
+                end;
+
+            end loop;
+        end loop;
+    end loop;
+
+   end isMoreThan10;
+
+   begin
+    isMoreThan10();
+   end;
+
+
