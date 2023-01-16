@@ -626,6 +626,35 @@ wg liczby egzaminowanych osób, od największej do najmniejszej
 (tzn. pierwszy element kolekcji zawiera egzaminatora, który egzaminował najwięcej osób). 
 Po zainicjowaniu kolekcji, wyświetlić wartości znajdujące się w poszczególnych jej elementach.
 
+
+declare 
+    type rowType is record (id_egzaminator number, imie varchar(20), nazwisko varchar(20), liczbaPrzeegzaminowanych number);
+    type tableType is table of rowType;
+    NT_Egzaminatorzy tableType := tableType();
+
+    cursor c1 is select distinct e.id_egzaminator, e1.imie, e1.nazwisko from egzaminy e  inner join egzaminatorzy e1 on e.id_egzaminator = e1.id_egzaminator order by 1;
+
+    function getLiczbaPrzeegzaminowanych(idE number) return number is
+        x number;
+        begin
+            select count(distinct id_student) into x from egzaminy where id_egzaminator = idE;
+            return x;
+        end getLiczbaPrzeegzaminowanych;
+
+begin
+    for vc1 in c1 loop
+        NT_Egzaminatorzy.extend;
+        NT_Egzaminatorzy(c1%rowcount).id_egzaminator := vc1.id_egzaminator;
+        NT_Egzaminatorzy(c1%rowcount).imie := vc1.imie;
+        NT_Egzaminatorzy(c1%rowcount).nazwisko := vc1.nazwisko;
+        NT_Egzaminatorzy(c1%rowcount).liczbaPrzeegzaminowanych := getLiczbaPrzeegzaminowanych(vc1.id_egzaminator);
+
+        dbms_output.put_line(   NT_Egzaminatorzy(c1%rowcount).id_egzaminator || ' ' ||  NT_Egzaminatorzy(c1%rowcount).imie || ' ' || NT_Egzaminatorzy(c1%rowcount).nazwisko || ' ' ||  NT_Egzaminatorzy(c1%rowcount).liczbaPrzeegzaminowanych );
+    end loop;
+end;
+
+
+--------------------------------------------------------------------------------
 Który student nie zdawał jeszcze egzaminu z przedmiotu "Bazy danych"? 
 W rozwiązaniu zadania wykorzystać technikę wyjątków (dodatkowo można także użyć kursory).
 W odpowiedzi umieścić pełne dane studenta (identyfikator, nazwisko, imię).
