@@ -331,7 +331,7 @@ begin
         IF num < 1 THEN
             colOsr.DELETE(j);
         END IF;
-        
+
     end loop ;
 
     for j in colOsr.first..colOsr.last loop
@@ -518,4 +518,38 @@ DECLARE
     isMoreThan10();
    end;
 
+-- ZADANIA Z KOLOSA 16.01
+-------------------------------------------------------------------------------------------------------
+Dla każdego roku, w którym odbyły się egzaminy, proszę wskazać tego studenta,
+który zdał najwięcej egzaminów w danym roku. Dodatkowo, należy podać sumaryczną liczbę 
+punktów uzyskanych z tych egzaminów przez studenta. W odpowiedzi umieścić informację o roku 
+(w formacie YYYY) oraz pełne informacje o studencie (identyfikator, nazwisko, imię). Zadanie 
+należy rozwiązać z użyciem kursora.
+
+Utworzyć w bazie danych tabelę o nazwie PrzedmiotyAnaliza.
+Tabela powinna zawierać informacje o liczbie egzaminów z 
+poszczególnych przedmiotów przeprowadzonych w poszczególnych miesiącach dla kolejnych lat.
+W tabeli utworzyć 2 kolumny. Pierwsza z nich opisuje przedmiot (nazwa przedmiotu). 
+Druga kolumna opisuje rok, miesiąc i liczbę egzaminów z danego przedmiotu w danym miesiącu danego roku. 
+Dane dotyczące roku, miesiąca i liczby egzaminów należy umieścić w kolumnie będącej kolekcją typu 
+tablica zagnieżdżona. Wprowadzić dane do tabeli PrzedmiotyAnaliza na podstawie danych zgromadzonych tabelach Przedmioty i Egzaminy.
+Następnie wyświetlić dane znajdujące się w tabeli PrzedmiotyAnaliza.
+
+Utworzyć kolekcję typu tablica zagnieżdżona i nazwać ją NT_Egzaminatorzy. 
+Kolekcja powinna zawierać elementy, z których każdy opisuje egzaminatora oraz liczbę studentów 
+przeegzaminowanych przez niego. Do opisu egzaminatora proszę użyć identyfikatora, nazwiska i imienia.
+Zainicjować wartości elementów kolekcji na podstawie danych z tabel Egzaminatorzy i Egzaminy. 
+Zapewnić, by egzaminatorzy umieszczeni w kolejnych elementach uporządkowani byli 
+wg liczby egzaminowanych osób, od największej do najmniejszej 
+(tzn. pierwszy element kolekcji zawiera egzaminatora, który egzaminował najwięcej osób). 
+Po zainicjowaniu kolekcji, wyświetlić wartości znajdujące się w poszczególnych jej elementach.
+
+Który student nie zdawał jeszcze egzaminu z przedmiotu "Bazy danych"? 
+W rozwiązaniu zadania wykorzystać technikę wyjątków (dodatkowo można także użyć kursory).
+W odpowiedzi umieścić pełne dane studenta (identyfikator, nazwisko, imię).
+
+Dla każdego ośrodka, w którym odbył się egzamin, wyznaczyć liczbę studentów, 
+którzy byli egzaminowani w danym ośrodku w kolejnych latach. 
+Liczbę egzaminowanych studentów należy wyznaczyć przy pomocy funkcji PL/SQL. 
+Wynik w postaci listy ośrodków i w/w liczb przedstawić w postaci posortowanej wg nazwy ośrodka i numeru roku.
 
