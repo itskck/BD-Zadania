@@ -824,10 +824,66 @@ select ae.*, nt.* from Analiza ae, table(ae.egzaminy) nt;
 
 4. Proszę wskazać tych egzaminatorów, którzy przeprowadzili egzaminy w dwóch ostatnich dniach egzaminowania z każdego przedmiotu. 
 Jeśli z danego przedmiotu nie było egzaminu, proszę wyświetlić komunikat "Brak egzaminów". 
-
 W odpowiedzi należy umieścić nazwę przedmiotu, datę egzaminu (w formacie DD-MM-YYYY) oraz identyfikator, nazwisko i imię egzaminatora. 
 Zadanie należy wykonać z użyciem kursora.
+    DECLARE
+    cursor cPrzedmioty is select distinct id_przedmiot, nazwa_przedmiot from przedmioty;
+    CURSOR c1(idP number) IS SELECT DISTINCT data_egzamin , id_przedmiot FROM egzaminy 
+    where id_przedmiot = idP
+    ORDER BY 1 DESC; 
+    CURSOR c2(pdata_egzamin DATE, idP number) IS SELECT DISTINCT e.id_egzaminator, nazwisko, imie 
+                        FROM egzaminatorzy e inner join egzaminy eg
+                        ON eg.id_egzaminator = e.id_egzaminator
+                        WHERE data_egzamin = pdata_egzamin 
+                        and id_przedmiot = idP;
+    vegzaminator VARCHAR2(100) ;
+    liczbaDat number;
+BEGIN
+    for p in cPrzedmioty loop
+     DBMS_OUTPUT.put_line('************************************') ;
+    DBMS_OUTPUT.put_line(p.nazwa_przedmiot) ;
+
+    FOR vc1 IN c1(p.id_przedmiot) LOOP
+        
+        EXIT WHEN c1%rowcount >2 ;
+                
+        DBMS_OUTPUT.put_line(vc1.data_egzamin) ;
+        FOR vc2 IN c2(vc1.data_egzamin,vc1.id_przedmiot) LOOP
+                vegzaminator := vc2.id_egzaminator || ' - ' || vc2.nazwisko || ' ' || vc2.imie ;
+                DBMS_OUTPUT.put_line(vegzaminator) ;
+        END LOOP ;
+        
+        
+    END LOOP ;
+    end loop;
+END ;
 
 5. Który student zdawał z przedmiotu "Bazy danych" więcej niż 10 egzaminów w ciągu jednego roku? 
 Zadanie należy rozwiązać przy pomocy wyjątków (dodatkowo można wykorzystać kursory). 
 W odpowiedzi proszę podać pełne dane studenta (identyfikator, nazwisko, imię), rok (w formacie YYYY) oraz liczbę egzaminów.
+
+
+declare
+    cursor c1 is select id_student, imie, nazwisko from studenci;
+    cursor c2 is select distinct extract(year from data_egzamin) as yr from egzaminy;
+    x number;
+    ex Exception;
+begin
+    for vc2 in c2 loop
+    for vc1 in c1 loop
+        begin
+            select count(*) into x from egzaminy e inner join przedmioty p on p.id_przedmiot = e.id_przedmiot
+            where vc1.id_student = e.id_student 
+            and p.nazwa_przedmiot = 'Bazy danych'
+            and extract(year from e.data_egzamin) = vc2.yr;
+            
+            if x > 10 then
+                raise ex; 
+            end if;         
+            exception 
+            when ex then 
+            dbms_output.put_line( vc1.imie || ' ' ||  vc1.nazwisko || ' ' ||  vc1.id_student || ' ' ||  vc2.yr || ' '|| x);
+        end;
+    end loop;
+    end loop;
+end;
