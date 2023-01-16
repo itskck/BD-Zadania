@@ -424,7 +424,7 @@ begin
 end ;
 
 
-
+dbms_output.put_line(val1 || ' ' || val2);
 
 
 
@@ -526,6 +526,58 @@ punktów uzyskanych z tych egzaminów przez studenta. W odpowiedzi umieścić in
 (w formacie YYYY) oraz pełne informacje o studencie (identyfikator, nazwisko, imię). Zadanie 
 należy rozwiązać z użyciem kursora.
 
+declare
+    cursor cStudent is select id_student, imie, nazwisko from studenci;
+    cursor cLata is select distinct extract(YEAR from data_egzamin) as yr from egzaminy order by 1;
+    maxEgz number;
+    sumPkt number;
+    maxEgzH number;
+    sumPktH number;
+    idStudenta studenci.id_student%TYPE;
+    imie varchar(20);
+    nazwisko varchar(20);
+    function pktSum(idS studenci.id_student%TYPE, yr number) return number is
+        n number;
+        begin
+            n:=0;
+            select sum(e.punkty) into n from egzaminy e  where idS = e.id_student and yr=extract(YEAR from e.data_egzamin) and e.zdal = 'T';
+            return n;
+            Exception
+            when no_data_found then return 0;
+            
+        end pktSum;
+    function egzSum(idS studenci.id_student%TYPE, yr number) return number is
+        n number;
+        begin
+            n:=0;
+            select count(*) into n from egzaminy e  where idS = e.id_student and yr=extract(YEAR from e.data_egzamin) and e.zdal = 'T';
+            return n;
+            Exception
+            when no_data_found then return 0;
+            
+        end egzSum;
+begin
+    for rok in cLata loop
+        maxEgz:=0;
+        sumPkt:=0;
+        maxEgzH:=0;
+        sumPktH:=0;
+        imie:='nikt';
+        nazwisko:='';
+        for stu in cStudent loop
+            maxEgzH:=egzSum(stu.id_student,rok.yr);
+            if maxEgzH>maxEgz then
+                maxEgz := maxEgzH;
+                idStudenta:=stu.id_student;
+                imie:=stu.imie;
+                nazwisko:=stu.nazwisko;
+                sumPkt:=pktSum(stu.id_student,rok.yr);
+            end if; 
+        end loop;
+    dbms_output.put_line(rok.yr || ' ' || idStudenta || ' '  || nazwisko || ' '  || imie || ' ' || sumPkt);
+    end loop;
+end;
+--------------------------------------------------------------------------------
 Utworzyć w bazie danych tabelę o nazwie PrzedmiotyAnaliza.
 Tabela powinna zawierać informacje o liczbie egzaminów z 
 poszczególnych przedmiotów przeprowadzonych w poszczególnych miesiącach dla kolejnych lat.
@@ -535,6 +587,36 @@ Dane dotyczące roku, miesiąca i liczby egzaminów należy umieścić w kolumni
 tablica zagnieżdżona. Wprowadzić dane do tabeli PrzedmiotyAnaliza na podstawie danych zgromadzonych tabelach Przedmioty i Egzaminy.
 Następnie wyświetlić dane znajdujące się w tabeli PrzedmiotyAnaliza.
 
+CREATE OR REPLACE TYPE typ_zdl_obj AS OBJECT(Rok NUMBER, Miesiac NUMBER, Liczba_egzaminow NUMBER);
+CREATE OR REPLACE TYPE typ_zdl IS TABLE OF typ_zdl_obj;
+CREATE TABLE PrzedmiotAnaliza2(Nazwa_Przedmiot VARCHAR2(40),
+                dataLiczbaEgz typ_zdl) NESTED TABLE dataLiczbaEgz STORE AS wyniki;
+DECLARE 
+    kolekcja typ_zdl:= typ_zdl();
+    i NUMBER DEFAULT 0;
+    CURSOR c1 IS SELECT Id_Przedmiot, Nazwa_Przedmiot FROM Przedmioty;
+    CURSOR c2(pIdPrzedmiot Przedmioty.Id_Przedmiot%TYPE) IS SELECT EXTRACT(year FROM Data_Egzamin) AS Rok,
+        EXTRACT(MONTH FROM Data_Egzamin) AS Miesiac, COUNT(ID_Egzamin) AS Liczba_Egzaminow
+        FROM Egzaminy e WHERE e.Id_Przedmiot = pIdPrzedmiot
+        GROUP BY EXTRACT(YEAR FROM Data_Egzamin), EXTRACT(MONTH FROM Data_Egzamin)
+        ORDER BY 1 DESC;
+BEGIN
+    FOR vc1 IN c1 LOOP
+        dbms_output.put_line('------Wyniki -------');
+        dbms_output.put_line(vc1.Nazwa_Przedmiot);
+        FOR vc2 IN c2(vc1.Id_Przedmiot) LOOP
+            i:=c2%ROWCOUNT;
+            kolekcja.EXTEND;
+            kolekcja(i):= typ_zdl_obj(vc2.Rok, vc2.Miesiac, vc2.Liczba_Egzaminow);
+        END LOOP;
+            INSERT INTO PrzedmiotAnaliza2 VALUES(vc1.Nazwa_Przedmiot, kolekcja);
+            kolekcja := typ_zdl();
+    END LOOP;
+END;
+
+select ae.*, nt.* 
+    from PrzedmiotAnaliza2 ae, table(ae.dataLiczbaEgz) nt ;
+--------------------------------------------------------------------------------
 Utworzyć kolekcję typu tablica zagnieżdżona i nazwać ją NT_Egzaminatorzy. 
 Kolekcja powinna zawierać elementy, z których każdy opisuje egzaminatora oraz liczbę studentów 
 przeegzaminowanych przez niego. Do opisu egzaminatora proszę użyć identyfikatora, nazwiska i imienia.
@@ -548,8 +630,44 @@ Który student nie zdawał jeszcze egzaminu z przedmiotu "Bazy danych"?
 W rozwiązaniu zadania wykorzystać technikę wyjątków (dodatkowo można także użyć kursory).
 W odpowiedzi umieścić pełne dane studenta (identyfikator, nazwisko, imię).
 
+declare
+    cursor c1 is select id_student, imie, nazwisko from studenci;
+    x number;
+begin
+    for vc1 in c1 loop
+        begin
+            select count(*) into x from egzaminy e inner join przedmioty p on p.id_przedmiot = e.id_przedmiot
+            where vc1.id_student = e.id_student and p.nazwa_przedmiot = 'Bazy danych';
+          
+            exception 
+            when no_data_found then dbms_output.put_line( vc1.imie || ' ' ||  vc1.nazwisko);
+        end;
+        
+    end loop;
+end;
+
+--------------------------------------------------------------------------------
 Dla każdego ośrodka, w którym odbył się egzamin, wyznaczyć liczbę studentów, 
 którzy byli egzaminowani w danym ośrodku w kolejnych latach. 
 Liczbę egzaminowanych studentów należy wyznaczyć przy pomocy funkcji PL/SQL. 
 Wynik w postaci listy ośrodków i w/w liczb przedstawić w postaci posortowanej wg nazwy ośrodka i numeru roku.
 
+declare
+   cursor cOsrodki is select distinct  o.id_osrodek, o.nazwa_osrodek from osrodki o inner join egzaminy e on e.id_osrodek = o.id_osrodek order by 2;
+    cursor cLata is select distinct extract(year from data_egzamin) as yr from egzaminy order by 1;
+
+    function getLiczbaStudentow(idO number, yr number) return number is
+        liczba number;
+        begin
+            select count( distinct id_student) into liczba from egzaminy where extract(year from data_egzamin) = yr and id_osrodek = idO;
+            return liczba;
+            exception
+            when no_data_found then return 0;
+        end getLiczbaStudentow;
+begin
+    for rok in cLata loop
+        for osrodek in cOsrodki loop
+            dbms_output.put_line(rok.yr || ' ' || osrodek.nazwa_osrodek || ' ' || getLiczbaStudentow(osrodek.id_osrodek,rok.yr));
+        end loop;
+    end loop;
+end;
