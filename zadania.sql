@@ -708,10 +708,74 @@ Zapewnić, by studenci umieszczeni w kolejnych elementach uporządkowani byli wg
 od największej do najmniejszej (tzn. pierwszy element kolekcji zawiera studenta, który miał najwięcej egzaminów). 
 Po zainicjowaniu kolekcji, wyświetlić wartości znajdujące się w poszczególnych jej elementach.
 
+declare
+type rowType is record (id_student number, imie varchar(20), nazwisko varchar(20), liczbaEgzaminow number, liczbaPunktow number);
+type tableType is table of rowType;
+NT_Studenci tableType := tableType();
+
+cursor cStudenci is select id_student, imie, nazwisko from studenci;
+
+function getLiczbaEgzaminow(idS number) return number is
+    x number;
+    begin
+        select count(*) into x from egzaminy e where e.id_student = idS; 
+        return x;
+        exception
+            when no_data_found then return 0;
+    end getLiczbaEgzaminow;
+
+
+function getLiczbaPunktow(idS number) return number is
+    x number;
+    begin
+        select sum(e.punkty) into x from egzaminy e where e.id_student = idS; 
+        return x;
+        exception
+            when no_data_found then return 0;
+    end getLiczbaPunktow;
+
+begin
+    for s in cStudenci loop
+        NT_Studenci.extend;
+        NT_STudenci(cStudenci%rowcount).id_student := s.id_student;
+        NT_STudenci(cStudenci%rowcount).imie := s.imie;
+        NT_STudenci(cStudenci%rowcount).nazwisko := s.nazwisko;
+        NT_STudenci(cStudenci%rowcount).liczbaEgzaminow := getLiczbaEgzaminow(s.id_student);
+        NT_STudenci(cStudenci%rowcount).liczbaPunktow := getLiczbaPunktow(s.id_student);
+        dbms_output.put_line(NT_STudenci(cStudenci%rowcount).id_student || ' ' || NT_STudenci(cStudenci%rowcount).imie || ' ' || NT_STudenci(cStudenci%rowcount).nazwisko || ' '||  NT_STudenci(cStudenci%rowcount).liczbaEgzaminow || ' ' ||  NT_STudenci(cStudenci%rowcount).liczbaPunktow );
+    end loop;
+end;
+
+
 2. Dla każdego ośrodka, w którym odbył się egzamin, wyznaczyć liczbę studentów, którzy byli egzaminowani w danym ośrodku w kolejnych latach. 
 Liczbę egzaminowanych studentów należy wyznaczyć przy pomocy funkcji PL/SQL. Wynik w postaci listy ośrodków i w/w liczb przedstawić w postaci
 posortowanej wg nazwy ośrodka i numeru roku.
 
+declare
+    cursor cLata is select distinct extract(year from data_egzamin) as yrs from egzaminy order by 1;
+    cursor cOsrodki is select distinct o.id_osrodek, o.nazwa_osrodek from osrodki o
+    inner join egzaminy e on o.id_osrodek = e.id_osrodek order by 2;
+
+    function getLiczbaStudentow(idO number, rok number) return number is 
+        x number;
+        begin
+            select count(distinct id_student) into x from egzaminy where id_osrodek = idO
+             and extract(year from data_egzamin) = rok;
+             return x;
+             
+            exception 
+                when no_data_found then return 0; 
+        end getLiczbaStudentow;
+
+begin
+    for r in cLata loop
+        for o in cOsrodki loop
+            dbms_output.put_line(r.yrs || ' ' || o.nazwa_osrodek || ' ' || getLiczbaStudentow(o.id_osrodek,r.yrs) );
+        end loop;
+
+    end loop;
+
+end;
 3. Utworzyć w bazie danych tabelę o nazwie Analityka. 
 Tabela powinna zawierać informacje o liczbie egzaminów poszczególnych egzaminatorów w poszczególnych ośrodkach. 
 W tabeli utworzyć 4 kolumny. Trzy pierwsze kolumny opisują egzaminatora (identyfikator, imię i nazwisko). 
