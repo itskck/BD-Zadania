@@ -785,6 +785,43 @@ Wprowadzić dane do tabeli Analityka na podstawie danych zgromadzonych w tabelac
 
 Następnie wyświetlić dane znajdujące się w tabeli Analityka.
 
+create or replace type egzObj as object (id_osrodek number, nazwa varchar(100), liczbaEgzaminow number);
+create or replace type egzTbl is table of egzObj;
+create table Analiza(
+    id_egzaminator number,
+    imie  varchar(100),
+    nazwisko varchar(100),
+    egzaminy egzTbl
+) nested table egzaminy store as egz;
+declare
+    kolekcja egzTbl := egzTbl();
+    cursor cEgz is select id_egzaminator, imie, nazwisko from egzaminatorzy;
+    cursor cOsr is select id_osrodek, nazwa_osrodek from osrodki;
+
+    function getLiczbaEgzaminow(idE number, idO number) return number is
+        x number;
+        begin
+            select count(*) into x from egzaminy where id_egzaminator = idE and id_osrodek = idO;
+            return x;
+            exception
+                when no_data_found then return 0;
+        end getLiczbaEgzaminow;
+
+    
+begin
+    for e in cEgz loop
+        for o in cOsr loop
+            kolekcja.extend;
+            kolekcja(cOsr%rowcount) := egzObj(o.id_osrodek,o.nazwa_osrodek,getLiczbaEgzaminow(e.id_egzaminator,o.id_osrodek));
+        end loop;
+        insert into Analiza values (e.id_egzaminator,e.imie,e.nazwisko,kolekcja);
+        kolekcja := egzTbl();
+    end loop;
+
+end;
+
+select ae.*, nt.* from Analiza ae, table(ae.egzaminy) nt;
+
 4. Proszę wskazać tych egzaminatorów, którzy przeprowadzili egzaminy w dwóch ostatnich dniach egzaminowania z każdego przedmiotu. 
 Jeśli z danego przedmiotu nie było egzaminu, proszę wyświetlić komunikat "Brak egzaminów". 
 
