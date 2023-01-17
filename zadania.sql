@@ -930,6 +930,40 @@ begin
 end;
 
 
+Utworzyć kolekcję typu tablica zagnieżdżona i nazwać ją NT_Osrodki. Kolekcja powinna
+zawierać elementy opisujące datę egzaminu oraz identyfikator i nazwę ośrodka. Elementami
+kolekcji będą dane o tych ośrodkach, w których przeprowadzono egzamin w trzech ostatnich
+dniach egzaminowania, oraz dane o dacie egzaminu.
+Zainicjować wartości elementów kolekcji na podstawie danych z tabel Osrodki i Egzaminy.
+Zapewnić, by dane umieszczane były w takiej kolejności, aby na początku znalazły się daty
+najpóźniejsze egzaminów.
+Po zainicjowaniu kolekcji, wyświetlić wartości znajdujące się w poszczególnych jej
+elementach.
 
 
+declare
+    type rowType is record(data_egzamin date, id_osrodek number, nazwa_osrodek osrodki.nazwa_osrodek%Type);
+    type colType is table of rowType;
+    NT_Osrodki colType := colType();
 
+    i number:= 1;
+
+    cursor cEgzaminy(d date) is select o.id_osrodek, o.nazwa_osrodek from egzaminy e inner join osrodki o
+                        on o.id_osrodek = e.id_osrodek where e.data_egzamin = d ;
+
+    cursor cDaty is select distinct data_egzamin from egzaminy  order by 1 desc fetch next 3 rows only;
+
+
+begin
+    for d in cDaty loop
+        for e in cEgzaminy(d.data_egzamin) loop
+            NT_Osrodki.extend;
+            NT_Osrodki(i).data_egzamin := d.data_egzamin;
+            NT_Osrodki(i).id_osrodek := e.id_osrodek;
+            NT_Osrodki(i).nazwa_osrodek := e.nazwa_osrodek;
+            dbms_output.put_line(NT_Osrodki(i).data_egzamin || ' ' ||NT_Osrodki(i).id_osrodek || ' ' ||  NT_Osrodki(i).nazwa_osrodek );
+            i:= i+1;
+           
+        end loop;
+    end loop;
+end;
