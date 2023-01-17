@@ -967,3 +967,44 @@ begin
         end loop;
     end loop;
 end;
+
+
+Utworzyć w bazie danych tabelę o nazwie StudExamDates. Tabela powinna zawierać
+informacje o studentach oraz datach zdanych egzaminów z poszczególnych przedmiotów.
+W tabeli utworzyć cztery kolumny. Trzy kolumny będą opisywać studenta (identyfikator, imię
+i nazwisko). Czwarta - przedmiot (nazwa przedmiotu) oraz datę zdanego egzaminu z tego
+przedmiotu.
+Dane dotyczące przedmiotu i daty egzaminu należy umieścić w kolumnie będącej kolekcją
+typu tabela zagnieżdżona. Wprowadzić dane do tabeli StudExamDates na podstawie
+danych zgromadzonych w tabelach Egzaminy, Studenci i Przedmioty. Następnie wyświetlić
+dane znajdujące się w tabeli StudExamDates.
+
+create or replace type objType as object (nazwa_przedmiot varchar(100), data_zdania date);
+create or replace type tblType is table of objType;
+create table StudExamDates(
+    id_student number,
+    imie varchar(100),
+    nazwisko varchar(100),
+    egzaminy tblType
+) nested table egzaminy store as egz;
+
+declare
+    egzaminy tblType := tblType();
+    cursor cStudenci is select id_student, imie, nazwisko from studenci;
+    cursor cPrzedmioty(idS number) is select p.nazwa_przedmiot,e.data_egzamin from egzaminy e
+    inner join przedmioty p on e.id_przedmiot = p.id_przedmiot 
+    where e.id_student = idS and e.zdal = 'T';
+
+begin
+    for s in cStudenci loop
+        for p in cPrzedmioty(s.id_student) loop
+            egzaminy.extend;
+            egzaminy(cPrzedmioty%rowcount) := objType(p.nazwa_przedmiot,p.data_egzamin);
+
+        end loop;
+        insert into StudExamDates values(s.id_student,s.imie,s.nazwisko,egzaminy);
+        egzaminy:= tblType();
+    end loop;
+end;
+
+select ae.*, nt.* from StudExamDates ae, table(ae.egzaminy) nt order by 5;
