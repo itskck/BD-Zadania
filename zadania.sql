@@ -887,3 +887,49 @@ begin
     end loop;
     end loop;
 end;
+
+
+Dla każdego przedmiotu wskazać tych studentów, którzy zdawali egzamin w ostatnim dniu
+egzaminowania z tego przedmiotu. Jeśli nikt nie zdawał egzaminu z danego przedmiotu,
+należy wyświetlić odpowiedni komunikat. W rozwiązaniu zadania należy wykorzystać
+podprogram (funkcja lub procedura) PL/SQL, który umożliwi wyznaczenie daty ostatniego
+dnia egzaminowania z danego przedmiotu.
+
+DECLARE
+    cursor cPrzedmioty is select id_przedmiot, nazwa_przedmiot from przedmioty;
+    cursor cStudenci(d date) is select distinct s.id_student, imie, nazwisko from studenci s inner join egzaminy e on e.id_student = s.id_student where e.data_egzamin = d;
+    
+    lastDate date;
+
+    function getLastDate(idP number) return date is
+        d date;
+        begin
+            select distinct data_egzamin into d from egzaminy where id_przedmiot = idP order by 1 desc fetch next 1 rows only ;
+            return d;
+
+            
+        end getLastDate;
+     
+    
+
+begin
+    for p in cPrzedmioty loop
+    dbms_output.put_line('===================================');
+    dbms_output.put_line(p.nazwa_przedmiot);
+    lastDate:=getLastDate(p.id_przedmiot);
+          
+            if lastDate = null then
+                dbms_output.put_line('Brak egzaminow');
+            else
+                for s in cStudenci(lastDate) loop
+                dbms_output.put_line(s.imie || ' ' || s.nazwisko);
+                end loop;
+                
+            end if;  
+    end loop;
+end;
+
+
+
+
+
