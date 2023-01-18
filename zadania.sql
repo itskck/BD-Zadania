@@ -1032,3 +1032,42 @@ begin
         end loop;
     end loop;
 end;
+
+Dla każdego egzaminatora o nazwisku Muryjas wskazać tych studentów, którzy zdawali u
+niego egzaminy w ostatnim dniu egzaminowania przez tego egzaminatora. Jeżeli
+egzaminator o podanym nazwisku nie istnieje, proszę wyświetlić komunikat "Brak
+egzaminatora o podanym nazwisku". Jeżeli dany egzaminator o tym nazwisku nie
+przeprowadził żadnego egzaminu, proszę wyświetlić komunikat "Brak egzaminów".
+W odpowiedzi umieści dane identyfikujące egzaminatora tj. jego identyfikator, nazwisko i
+imię, datę egzaminu (w formacie DD-MM-YYYY) oraz dane identyfikujące studenta tj. jego
+identyfikator, nazwisko i imię. Zadanie należy wykonać z użyciem kursora.
+
+declare
+    isEgzaminatorEmpty boolean := true;
+    isDateEmpty boolean := true;
+    cursor c1 is select distinct id_egzaminator, nazwisko, imie from egzaminatorzy where nazwisko='Muryjas';
+    cursor c2(idM number) is select data_egzamin from egzaminy e where idM=e.id_egzaminator order by 1 desc fetch next 1 rows only;
+    cursor c3(idM number, czas date) is select distinct s.id_student, s.nazwisko, s.imie from studenci s inner join egzaminy e on s.id_student=e.id_student
+     where e.id_egzaminator=idM and e.data_egzamin=czas;
+
+begin
+    for vc1 in c1 loop
+        isEgzaminatorEmpty:=false;
+        DBMS_OUTPUT.put_line('------------------------------------------------------');
+        DBMS_OUTPUT.put_line(vc1.id_egzaminator || ' ' || vc1.nazwisko || ' ' || vc1.imie);
+        for vc2 in c2(vc1.id_egzaminator) loop
+            isDateEmpty:=false;
+            DBMS_OUTPUT.put_line(vc2.data_egzamin);
+            for vc3 in c3(vc1.id_egzaminator, vc2.data_egzamin) loop
+                 DBMS_OUTPUT.put_line(vc3.id_student || ' ' || vc3.imie || ' ' || vc3.nazwisko);
+            end loop;
+        end loop;
+        if isDateEmpty=true then
+            DBMS_OUTPUT.put_line('Brak egzaminów');
+        end if;
+        isDateEmpty:=true;
+    end loop; 
+    if isEgzaminatorEmpty=true then
+        DBMS_OUTPUT.put_line('Brak egzaminatora o podanym nazwisku');
+    end if;
+end;
