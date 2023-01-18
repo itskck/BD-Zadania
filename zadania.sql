@@ -1220,6 +1220,38 @@ begin
     end loop;
 end;
 
+Dla każdego egzaminatora wskazać tych studentów, których egzaminował on w ciągu
+ostatnich trzech dni swojego egzaminowania. Jeżeli dany egzaminator nie przeprowadził
+żadnego egzaminu, proszę wyświetlić komunikat "Brak egzaminów". W odpowiedzi należy
+umieścić dane identyfikujące egzaminatora (identyfikator, nazwisko, imię), dzień
+egzaminowania (w formacie DD-MM-YYYY) i egzaminowanych studentów
+(identyfikator,nazwisko, imię). Zadanie proszę wykonać z użyciem kursora.
+
+declare
+    isDateEmpty boolean := true;
+    cursor c1 is select distinct id_egzaminator, nazwisko, imie from egzaminatorzy;
+    cursor c2(idEgz number) is select data_egzamin from egzaminy e where idEgz=e.id_egzaminator order by 1 desc fetch next 3 rows only;
+    cursor c3(idEgz number, czas date) is select distinct s.id_student, s.nazwisko, s.imie from studenci s inner join egzaminy e on s.id_student=e.id_student
+     where e.id_egzaminator=idEgz and e.data_egzamin=czas;
+
+begin
+    for vc1 in c1 loop
+        DBMS_OUTPUT.put_line('------------------------------------------------------');
+        DBMS_OUTPUT.put_line(vc1.id_egzaminator || ' ' || vc1.nazwisko || ' ' || vc1.imie);
+        for vc2 in c2(vc1.id_egzaminator) loop
+            isDateEmpty:=false;
+            DBMS_OUTPUT.put_line(vc2.data_egzamin);
+            for vc3 in c3(vc1.id_egzaminator, vc2.data_egzamin) loop
+                 DBMS_OUTPUT.put_line(vc3.id_student || ' ' || vc3.imie || ' ' || vc3.nazwisko);
+            end loop;
+        end loop;
+        if isDateEmpty=true then
+            DBMS_OUTPUT.put_line('Brak egzaminów');
+        end if;
+        isDateEmpty:=true;
+    end loop; 
+end;
+
 
 
 
