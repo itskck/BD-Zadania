@@ -1252,7 +1252,31 @@ begin
     end loop; 
 end;
 
+Utworzyć kolekcję typu tablica zagnieżdżona i nazwać ją NT_Studenci. Kolekcja powinna
+zawierać elementy opisujące datę ostatniego egzaminu poszczególnych studentów.
+Zainicjować wartości elementów kolekcji na podstawie danych z tabel Studenci i Egzaminy.
+Do opisu studenta należy użyć jego identyfikatora, nazwiska i imienia. Zapewnić, by
+elementy kolekcji uporządkowane były wg daty egzaminu, od najstarszej do najnowszej (tzn.
+pierwszy element kolekcji zawiera studenta, który zdawał najwcześniej egzamin). Po
+zainicjowaniu kolekcji, wyświetlić wartości znajdujące się w poszczególnych jej elementach.
 
+declare
+    type rowType is record(dataEgzamin date, idStudent number, nazwisko varchar(100), imie varchar(100));
+    type colType is table of rowType;
+    NT_Studenci colType:=colType();
+    cursor c1 is select distinct s.id_student, s.nazwisko, s.imie, max(e.data_egzamin) as mx from studenci s 
+    inner join egzaminy e on e.id_student=s.id_student group by s.id_student, s.nazwisko, s.imie order by mx;
+    
+begin
+    for vc1 in c1 loop
+        NT_Studenci.extend();
+        NT_Studenci(c1%rowcount).dataEgzamin := vc1.mx;
+        NT_Studenci(c1%rowcount).idStudent := vc1.id_student;
+        NT_Studenci(c1%rowcount).nazwisko := vc1.nazwisko;
+        NT_Studenci(c1%rowcount).imie := vc1.imie;
+        DBMS_OUTPUT.put_line(NT_Studenci(c1%rowcount).idStudent || ' ' || NT_Studenci(c1%rowcount).nazwisko || ' ' || NT_Studenci(c1%rowcount).imie || ' ' || NT_Studenci(c1%rowcount).dataEgzamin);
+    end loop;
+end;
 
 
     
