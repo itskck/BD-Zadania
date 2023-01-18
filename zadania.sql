@@ -1200,5 +1200,27 @@ egzaminu, wyświetlić liczbę 0 (zero). Liczbę egzaminów danego studenta nale
 przy pomocy funkcji PL/SQL. Wynik w postaci listy studentów i liczby ich egzaminów
 przedstawić w postaci posortowanej wg nazwiska i imienia studenta.
 
+declare
+    liczbaEgzaminow number;
+    cursor c1 is select id_student, nazwisko, imie from studenci order by 2,3;
+
+    function getExamNumber(vid_student number) return number is
+        x number;
+        begin
+            select count(*) into x from egzaminy e where e.id_student=vid_student;
+            return x;
+            exception
+            when no_data_found then return 0;
+        end getExamNumber;
+
+begin
+    for vc1 in c1 loop
+        liczbaEgzaminow:=getExamNumber(vc1.id_student);
+        dbms_output.put_line(vc1.nazwisko || ' ' || vc1.imie || ' ' || liczbaEgzaminow);
+    end loop;
+end;
+
+
+
 
     
