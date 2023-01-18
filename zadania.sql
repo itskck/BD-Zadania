@@ -1008,3 +1008,27 @@ begin
 end;
 
 select ae.*, nt.* from StudExamDates ae, table(ae.egzaminy) nt order by 5;
+
+Dla każdego ośrodka, w którym przeprowadzono egzaminy, proszę wskazać tych
+studentów, którzy byli egzaminowani w ciągu trzech ostatnich dni egzaminowania w danym
+ośrodku. Wyświetlić identyfikator i nazwę ośrodka, datę egzaminu (w formacie
+DD-MM-YYYY) oraz identyfikator, imię i nazwisko studenta. Zadanie należy rozwiązać z
+użyciem kursora.
+
+declare
+    cursor c1 is select distinct o.id_osrodek, o.nazwa_osrodek from osrodki o inner join egzaminy e on e.id_osrodek=o.id_osrodek;
+    cursor c2(idO number) is select e.data_egzamin from egzaminy e where idO=e.id_osrodek order by 1 desc fetch next 3 rows only;
+    cursor c3(czas date, idO number) is select distinct s.id_student, s.imie, s.nazwisko from studenci s inner join egzaminy e on e.id_student=s.id_student where czas=e.data_egzamin and idO=e.id_osrodek;
+
+begin
+    for vc1 in c1 loop
+    DBMS_OUTPUT.put_line('------------------------------------------------------');
+        DBMS_OUTPUT.put_line(vc1.id_osrodek || ' ' || vc1.nazwa_osrodek);
+        for vc2 in c2(vc1.id_osrodek) loop
+            DBMS_OUTPUT.put_line(vc2.data_egzamin);
+            for vc3 in c3(vc2.data_egzamin, vc1.id_osrodek) loop
+                 DBMS_OUTPUT.put_line(vc3.id_student || ' ' || vc3.imie || ' ' || vc3.nazwisko);
+            end loop;
+        end loop;
+    end loop;
+end;
