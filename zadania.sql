@@ -1111,3 +1111,48 @@ begin
         end loop;
     end loop;
     end;
+
+Dla każdego ośrodka wskazać tych studentów, którzy zdawali egzamin w tym ośrodku w
+kolejnych latach. W rozwiązaniu zadania wykorzystać podprogram (funkcję lub procedurę)
+PL/SQL, który umożliwia kontrolę uczestnictwa studenta w egzaminie przeprowadzonym w
+danym ośrodku i w danym roku. Do określenia roku wykorzystać funkcję EXTRACT 
+
+declare
+   
+    cursor cLata is select distinct extract(year from data_egzamin) as rok from egzaminy order by 1;
+    cursor cOsrodki is select distinct id_osrodek, nazwa_osrodek from osrodki;
+    cursor cStudenci is select distinct s.id_student, s.imie, s.nazwisko from studenci s inner join egzaminy e
+    on s.id_student = e.id_student;
+
+    czy boolean := false;
+
+    function czyZdawal(idS number, yr number, idO number) return boolean is
+        b boolean;
+        x number;
+        begin
+            select count(*) into x from egzaminy where extract(year from data_egzamin) = yr
+            and id_student = idS and id_osrodek = idO;
+            return true;
+            exception
+             when no_data_found then return false;           
+        end czyZdawal;     
+begin
+    for o in cOsrodki loop
+    dbms_output.put_line('------------');
+    dbms_output.put_line(o.nazwa_osrodek);
+        for r in cLata loop
+              dbms_output.put_line(r.rok); 
+              for s in cStudenci loop
+                czy := czyZdawal(s.id_student,r.rok,o.id_osrodek);
+                if czy then
+                 dbms_output.put_line(s.id_student || ' ' || s.imie || ' ' || s.nazwisko);
+                else
+                      dbms_output.put_line('Nikt');
+                      end if;
+
+                czy := false;
+              end loop;
+        end loop;
+    end loop;
+
+ end;
