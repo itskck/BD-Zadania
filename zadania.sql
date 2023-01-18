@@ -1278,5 +1278,48 @@ begin
     end loop;
 end;
 
+Utworzyć w bazie danych tabelę o nazwie EgzaminatorzyAnaliza. 
+Tabela powinna zawierać informacje o liczbie studentów egzaminowanych przez poszczególnych egzaminatorów w kolejnych miesiącach w poszczególnych latach.
+W tabeli utworzyć 4 kolumny. 
+Trzy pierwsze kolumny będą opisywać egzaminatora, tj. jego ID, nazwisko i imię. 
+Czwarta kolumna będzie opisywać rok, miesiąc i liczbę osób egzaminowanych przez danego egzaminatora w danym miesiącu danego roku. 
+Dane dotyczące roku, miesiąca i liczby studentów należy umieścić w kolumnie będącej kolekcją typu tablica zagnieżdżona. 
+Wprowadzić dane do tabeli EgzaminatorzyAnaliza na podstawie danych zgromadzonych tabelach Egzaminatorzy i Egzaminy.
 
-    
+Następnie wyświetlić dane znajdujące się w tabeli EgzaminatorzyAnaliza. !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!CHYBA GIT ROBILEM ZMECZONY
+
+create or replace type objectType as object(rok number, miesiac number, liczbaOsob number); 
+create or replace type typObiekt is table of objectType; 
+create table EgzaminatorzyAnaliza(idE number, nazwisko varchar(100), imie varchar(100), liczbaEgzaminowanych typObiekt) nested table liczbaEgzaminowanych store as tabela;
+
+declare 
+    obiekt typObiekt := typObiekt(); 
+    cursor c1 is select id_egzaminator, nazwisko, imie from egzaminatorzy; 
+    cursor c2 is select distinct extract(year from data_egzamin) as rok from egzaminy order by 1; 
+    cursor c3 is select distinct extract(month from data_egzamin) as miesiac from egzaminy order by 1; 
+    i number := 1; 
+ 
+    function getStudentNumber(idE number, miesiac number, rok number) return  number is  
+        x number; 
+        begin 
+            select count(*) into x from egzaminy e where e.id_egzaminator=idE and extract(month from e.data_egzamin)=miesiac and extract(year from e.data_egzamin)=rok; 
+            return x; 
+            exception 
+            when no_data_found then return 0; 
+        end getStudentNumber; 
+begin 
+    for vc1 in c1 loop 
+        for vc2 in c2 loop 
+            for vc3 in c3 loop 
+                obiekt.extend(); 
+                obiekt(c3%rowcount) := objectType(vc2.rok, vc3.miesiac, getStudentNumber(vc1.id_egzaminator, vc3.miesiac, vc2.rok)); 
+            end loop; 
+            insert into EgzaminatorzyAnaliza(idE, nazwisko, imie, liczbaEgzaminowanych) values(vc1.id_egzaminator, vc1.nazwisko, vc1.imie, obiekt); 
+            obiekt:=typObiekt(); 
+        end loop; 
+    end loop; 
+end;
+
+select ae.*, nt.*  
+    from EgzaminatorzyAnaliza ae, table(ae.liczbaEgzaminowanych) nt 
+
