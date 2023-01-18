@@ -1071,3 +1071,43 @@ begin
         DBMS_OUTPUT.put_line('Brak egzaminatora o podanym nazwisku');
     end if;
 end;
+
+Który egzaminator przeprowadził więcej niż 50 egzaminów w tym samym ośrodku w jednym
+roku? Zadanie należy rozwiązać przy użyciu techniki wyjątków (jeśli to konieczne, można
+dodatkowo zastosować kursory). W odpowiedzi proszę umieścić pełne dane o ośrodku
+(identyfikator, nazwa), informację o roku (w formacie YYYY), pełne dane egzaminatora
+(identyfikator, nazwisko, imię) oraz liczbę egzaminów.
+Zadanie należy wykonać, wykorzystując technikę wyjątków
+
+declare
+    ex Exception;
+    cnt number := 0;  
+    cursor cLata is select distinct extract(year from data_egzamin) as rok from egzaminy order by 1;
+    cursor cOsrodki is select distinct id_osrodek, nazwa_osrodek from osrodki;
+    cursor cEgzaminatorzy is select distinct e.id_egzaminator, eg.imie, eg.nazwisko from egzaminy e inner join egzaminatorzy eg on e.id_egzaminator = eg.id_egzaminator;
+   
+
+     
+begin
+
+    for r in cLata loop
+       
+        for o in cOsrodki loop
+      
+            for e in cEgzaminatorzy loop
+                begin
+                select count(*) as howMuch into cnt  from egzaminy 
+                   where id_osrodek = o.id_osrodek 
+                   and extract(year from data_egzamin) = r.rok 
+                   and id_egzaminator = e.id_egzaminator;
+                if cnt > 50
+                then raise ex;
+                end if;
+
+                exception
+                when ex then  dbms_output.put_line(o.id_osrodek || ' ' || o.nazwa_osrodek || ' ' || r.rok || ' ' || e.id_egzaminator || ' ' || e.imie || ' ' || e.nazwisko || ' ' || cnt);
+                end;
+            end loop;
+        end loop;
+    end loop;
+    end;
