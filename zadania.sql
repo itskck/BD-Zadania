@@ -1156,3 +1156,49 @@ begin
     end loop;
 
  end;
+
+
+Który egzaminator nie przeprowadził egzaminów w poszczególnych latach? Dla każdego
+roku, w którym odbyły się egzaminy, należy wskazać egzaminatora, który w danym roku nie
+prowadził egzaminów.
+W odpowiedzi należy umieścić dane o roku (w formacie YYYY) oraz pełne informacje o
+egzaminatorze (identyfikator, nazwisko, imię). W zadaniu należy wykorzystać technikę
+wyjątków.
+
+declare
+    exc exception;
+    iloscEgzaminow number;
+    cursor c1 is select distinct extract(year from data_egzamin) as rok from egzaminy order by 1;
+    cursor c2 is select id_egzaminator, imie, nazwisko from egzaminatorzy order by 1;
+
+    function getExamNumber(vIdEgzaminator number, rok number) return number is
+        x number;
+        begin
+            select count(*) into x from egzaminy e where e.id_egzaminator=vIdEgzaminator and extract(year from e.data_egzamin)=rok;
+            return x;
+            exception 
+            when no_data_found then return 0;
+        end getExamNumber;
+
+begin
+    for vc1 in c1 loop
+        for vc2 in c2 loop
+            begin
+                iloscEgzaminow:=getExamNumber(vc2.id_egzaminator, vc1.rok);
+                if iloscEgzaminow=0 
+                    then raise exc;
+                end if;
+                exception
+                when exc then dbms_output.put_line(vc1.rok || ' ' || vc2.id_egzaminator || ' ' || vc2.nazwisko || ' ' || vc2.imie);
+            end;
+        end loop;
+    end loop;
+end;
+
+Dla każdego studenta wyznaczyć liczbę jego egzaminów. Jeśli student nie zdawał żadnego
+egzaminu, wyświetlić liczbę 0 (zero). Liczbę egzaminów danego studenta należy wyznaczyć
+przy pomocy funkcji PL/SQL. Wynik w postaci listy studentów i liczby ich egzaminów
+przedstawić w postaci posortowanej wg nazwiska i imienia studenta.
+
+
+    
