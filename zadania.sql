@@ -1156,3 +1156,8 @@ begin
     end loop;
 
  end;
+
+Dla każdego studenta wyznaczyć liczbę jego egzaminów. Jeśli student nie zdawał żadnego
+egzaminu, wyświetlić liczbę 0 (zero). Liczbę egzaminów danego studenta należy wyznaczyć
+przy pomocy funkcji PL/SQL. Wynik w postaci listy studentów i liczby ich egzaminów
+przedstawić w postaci posortowanej wg nazwiska i imienia studenta.
