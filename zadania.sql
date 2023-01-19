@@ -666,7 +666,7 @@ begin
     for vc1 in c1 loop
         begin
             select count(*) into x from egzaminy e inner join przedmioty p on p.id_przedmiot = e.id_przedmiot
-            where vc1.id_student = e.id_student and p.nazwa_przedmiot = 'Bazy danych';
+            where vc1.id_student = e.id_student and upper(p.nazwa_przedmiot) = upper('Bazy danych');
           
             exception 
             when no_data_found then dbms_output.put_line( vc1.imie || ' ' ||  vc1.nazwisko);
