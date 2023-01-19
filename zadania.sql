@@ -1157,7 +1157,191 @@ begin
 
  end;
 
+Który egzaminator nie przeprowadził egzaminów w poszczególnych latach? Dla każdego
+roku, w którym odbyły się egzaminy, należy wskazać egzaminatora, który w danym roku nie
+prowadził egzaminów.
+W odpowiedzi należy umieścić dane o roku (w formacie YYYY) oraz pełne informacje o
+egzaminatorze (identyfikator, nazwisko, imię). W zadaniu należy wykorzystać technikę
+wyjątków.
+
+declare
+    exc exception;
+    iloscEgzaminow number;
+    cursor c1 is select distinct extract(year from data_egzamin) as rok from egzaminy order by 1;
+    cursor c2 is select id_egzaminator, imie, nazwisko from egzaminatorzy order by 1;
+
+    function getExamNumber(vIdEgzaminator number, rok number) return number is
+        x number;
+        begin
+            select count(*) into x from egzaminy e where e.id_egzaminator=vIdEgzaminator and extract(year from e.data_egzamin)=rok;
+            return x;
+            exception 
+            when no_data_found then return 0;
+        end getExamNumber;
+
+begin
+    for vc1 in c1 loop
+        for vc2 in c2 loop
+            begin
+                iloscEgzaminow:=getExamNumber(vc2.id_egzaminator, vc1.rok);
+                if iloscEgzaminow=0 
+                    then raise exc;
+                end if;
+                exception
+                when exc then dbms_output.put_line(vc1.rok || ' ' || vc2.id_egzaminator || ' ' || vc2.nazwisko || ' ' || vc2.imie);
+            end;
+        end loop;
+    end loop;
+end;
+
 Dla każdego studenta wyznaczyć liczbę jego egzaminów. Jeśli student nie zdawał żadnego
 egzaminu, wyświetlić liczbę 0 (zero). Liczbę egzaminów danego studenta należy wyznaczyć
 przy pomocy funkcji PL/SQL. Wynik w postaci listy studentów i liczby ich egzaminów
 przedstawić w postaci posortowanej wg nazwiska i imienia studenta.
+
+declare
+    liczbaEgzaminow number;
+    cursor c1 is select id_student, nazwisko, imie from studenci order by 2,3;
+
+    function getExamNumber(vid_student number) return number is
+        x number;
+        begin
+            select count(*) into x from egzaminy e where e.id_student=vid_student;
+            return x;
+            exception
+            when no_data_found then return 0;
+        end getExamNumber;
+
+begin
+    for vc1 in c1 loop
+        liczbaEgzaminow:=getExamNumber(vc1.id_student);
+        dbms_output.put_line(vc1.nazwisko || ' ' || vc1.imie || ' ' || liczbaEgzaminow);
+    end loop;
+end;
+
+Dla każdego egzaminatora wskazać tych studentów, których egzaminował on w ciągu
+ostatnich trzech dni swojego egzaminowania. Jeżeli dany egzaminator nie przeprowadził
+żadnego egzaminu, proszę wyświetlić komunikat "Brak egzaminów". W odpowiedzi należy
+umieścić dane identyfikujące egzaminatora (identyfikator, nazwisko, imię), dzień
+egzaminowania (w formacie DD-MM-YYYY) i egzaminowanych studentów
+(identyfikator,nazwisko, imię). Zadanie proszę wykonać z użyciem kursora.
+
+declare
+    isDateEmpty boolean := true;
+    cursor c1 is select distinct id_egzaminator, nazwisko, imie from egzaminatorzy;
+    cursor c2(idEgz number) is select data_egzamin from egzaminy e where idEgz=e.id_egzaminator order by 1 desc fetch next 3 rows only;
+    cursor c3(idEgz number, czas date) is select distinct s.id_student, s.nazwisko, s.imie from studenci s inner join egzaminy e on s.id_student=e.id_student
+     where e.id_egzaminator=idEgz and e.data_egzamin=czas;
+
+begin
+    for vc1 in c1 loop
+        DBMS_OUTPUT.put_line('------------------------------------------------------');
+        DBMS_OUTPUT.put_line(vc1.id_egzaminator || ' ' || vc1.nazwisko || ' ' || vc1.imie);
+        for vc2 in c2(vc1.id_egzaminator) loop
+            isDateEmpty:=false;
+            DBMS_OUTPUT.put_line(vc2.data_egzamin);
+            for vc3 in c3(vc1.id_egzaminator, vc2.data_egzamin) loop
+                 DBMS_OUTPUT.put_line(vc3.id_student || ' ' || vc3.imie || ' ' || vc3.nazwisko);
+            end loop;
+        end loop;
+        if isDateEmpty=true then
+            DBMS_OUTPUT.put_line('Brak egzaminów');
+        end if;
+        isDateEmpty:=true;
+    end loop; 
+end;
+
+Utworzyć kolekcję typu tablica zagnieżdżona i nazwać ją NT_Studenci. Kolekcja powinna
+zawierać elementy opisujące datę ostatniego egzaminu poszczególnych studentów.
+Zainicjować wartości elementów kolekcji na podstawie danych z tabel Studenci i Egzaminy.
+Do opisu studenta należy użyć jego identyfikatora, nazwiska i imienia. Zapewnić, by
+elementy kolekcji uporządkowane były wg daty egzaminu, od najstarszej do najnowszej (tzn.
+pierwszy element kolekcji zawiera studenta, który zdawał najwcześniej egzamin). Po
+zainicjowaniu kolekcji, wyświetlić wartości znajdujące się w poszczególnych jej elementach.
+
+declare
+    type rowType is record(dataEgzamin date, idStudent number, nazwisko varchar(100), imie varchar(100));
+    type colType is table of rowType;
+    NT_Studenci colType:=colType();
+    cursor c1 is select distinct s.id_student, s.nazwisko, s.imie, max(e.data_egzamin) as mx from studenci s 
+    inner join egzaminy e on e.id_student=s.id_student group by s.id_student, s.nazwisko, s.imie order by mx;
+    
+begin
+    for vc1 in c1 loop
+        NT_Studenci.extend();
+        NT_Studenci(c1%rowcount).dataEgzamin := vc1.mx;
+        NT_Studenci(c1%rowcount).idStudent := vc1.id_student;
+        NT_Studenci(c1%rowcount).nazwisko := vc1.nazwisko;
+        NT_Studenci(c1%rowcount).imie := vc1.imie;
+        DBMS_OUTPUT.put_line(NT_Studenci(c1%rowcount).idStudent || ' ' || NT_Studenci(c1%rowcount).nazwisko || ' ' || NT_Studenci(c1%rowcount).imie || ' ' || NT_Studenci(c1%rowcount).dataEgzamin);
+    end loop;
+end;
+
+Utworzyć w bazie danych tabelę o nazwie EgzaminatorzyAnaliza. 
+Tabela powinna zawierać informacje o liczbie studentów egzaminowanych przez poszczególnych egzaminatorów w kolejnych miesiącach w poszczególnych latach.
+W tabeli utworzyć 4 kolumny. 
+Trzy pierwsze kolumny będą opisywać egzaminatora, tj. jego ID, nazwisko i imię. 
+Czwarta kolumna będzie opisywać rok, miesiąc i liczbę osób egzaminowanych przez danego egzaminatora w danym miesiącu danego roku. 
+Dane dotyczące roku, miesiąca i liczby studentów należy umieścić w kolumnie będącej kolekcją typu tablica zagnieżdżona. 
+Wprowadzić dane do tabeli EgzaminatorzyAnaliza na podstawie danych zgromadzonych tabelach Egzaminatorzy i Egzaminy.
+
+Następnie wyświetlić dane znajdujące się w tabeli EgzaminatorzyAnaliza. !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!CHYBA GIT ROBILEM ZMECZONY
+
+create or replace type objectType as object(rok number, miesiac number, liczbaOsob number); 
+create or replace type typObiekt is table of objectType; 
+create table EgzaminatorzyAnaliza(idE number, nazwisko varchar(100), imie varchar(100), liczbaEgzaminowanych typObiekt) nested table liczbaEgzaminowanych store as tabela;
+
+declare 
+    obiekt typObiekt := typObiekt(); 
+    cursor c1 is select id_egzaminator, nazwisko, imie from egzaminatorzy; 
+    cursor c2 is select distinct extract(year from data_egzamin) as rok from egzaminy order by 1; 
+    cursor c3 is select distinct extract(month from data_egzamin) as miesiac from egzaminy order by 1; 
+    i number := 1; 
+ 
+    function getStudentNumber(idE number, miesiac number, rok number) return  number is  
+        x number; 
+        begin 
+            select count(*) into x from egzaminy e where e.id_egzaminator=idE and extract(month from e.data_egzamin)=miesiac and extract(year from e.data_egzamin)=rok; 
+            return x; 
+            exception 
+            when no_data_found then return 0; 
+        end getStudentNumber; 
+begin 
+    for vc1 in c1 loop 
+        for vc2 in c2 loop 
+            for vc3 in c3 loop 
+                obiekt.extend(); 
+                obiekt(c3%rowcount) := objectType(vc2.rok, vc3.miesiac, getStudentNumber(vc1.id_egzaminator, vc3.miesiac, vc2.rok)); 
+            end loop; 
+            insert into EgzaminatorzyAnaliza(idE, nazwisko, imie, liczbaEgzaminowanych) values(vc1.id_egzaminator, vc1.nazwisko, vc1.imie, obiekt); 
+            obiekt:=typObiekt(); 
+        end loop; 
+    end loop; 
+end;
+
+select ae.*, nt.*  
+    from EgzaminatorzyAnaliza ae, table(ae.liczbaEgzaminowanych) nt 
+
+Dla każdego studenta wyznaczyć liczbę jego egzaminów. Jeśli student nie zdawał żadnego
+egzaminu, wyświetlić liczbę 0 (zero). Liczbę egzaminów danego studenta należy wyznaczyć
+przy pomocy funkcji PL/SQL. Wynik w postaci listy studentów i liczby ich egzaminów
+przedstawić w postaci posortowanej wg nazwiska i imienia studenta.
+
+declare
+    cursor cStudenci is select id_student, imie, nazwisko from studenci order by 3,2;
+    
+    function getExamCount(idS number) return number is
+        x number;
+        begin
+            select count(*) into x from egzaminy where id_student = idS;
+            return x;
+            exception
+            when no_data_found then return 0;
+        end getExamCount;
+
+begin
+    for s in cStudenci loop
+        dbms_output.put_line(s.imie || ' ' || s.nazwisko || ' '  ||getExamCount(s.id_student));
+    end loop;
+
+end;
